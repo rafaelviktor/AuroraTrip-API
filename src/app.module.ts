@@ -8,6 +8,7 @@ import { join } from 'path';
 import { DriverModule } from './driver/driver.module';
 import { VehicleModule } from './vehicles/vehicle.module';
 import { TouristPointModule } from './touristpoint/touristpoint.module';
+import { PackageTourModule } from './packagetour/packagetour.module';
 
 @Module({
   imports: [
@@ -25,7 +26,8 @@ import { TouristPointModule } from './touristpoint/touristpoint.module';
     UserModule,
     DriverModule,
     VehicleModule,
-    TouristPointModule
+    TouristPointModule,
+    PackageTourModule
   ],
   controllers: [],
   providers: [],

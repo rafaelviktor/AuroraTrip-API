@@ -17,7 +17,7 @@ export class User extends Document {
     createdAt: Date;
     @Prop({ required: false})
     refreshToken: string;
-    @Prop({ required: true, enum: ['admin', 'moderator', 'user', 'premium'], default: 'user' })
+    @Prop({ required: true, enum: ['admin', 'moderator', 'user'], default: 'user' })
     role: string;
 }
 

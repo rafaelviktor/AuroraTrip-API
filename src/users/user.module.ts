@@ -1,11 +1,9 @@
 import { Module, MiddlewareConsumer } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { User, UserSchema } from 'src/schemas/Users/User.schema';
-import { UsersService } from './users.service';
-import { UsersController } from './users.controller';
+import { UserService } from './user.service';
+import { UserController } from './user.controller';
 import { ValidateObjectIdMiddleware } from '../middlewares/validate-object-id.middleware';
-import { EmailService } from 'src/mailer/mailer.service';
-import { VerificationCode, VerificationCodeSchema } from 'src/schemas/VerificationCodes/VerificationCode.schema';
 
 @Module({
     imports: [
@@ -13,18 +11,14 @@ import { VerificationCode, VerificationCodeSchema } from 'src/schemas/Verificati
         {
             name: User.name,
             schema: UserSchema,
-        },
-        {
-            name: VerificationCode.name,
-            schema: VerificationCodeSchema,
         }
     ]),
     ],
-    controllers: [UsersController],
-    providers: [UsersService, EmailService],
-    exports: [UsersService, EmailService]
+    controllers: [UserController],
+    providers: [UserService],
+    exports: [UserService]
 })
-export class UsersModule {
+export class UserModule {
     configure(consumer: MiddlewareConsumer) {
         consumer
             .apply(ValidateObjectIdMiddleware)

@@ -1,15 +1,16 @@
 import { createZodDto } from "nestjs-zod";
 import { z } from 'zod';
 
-const CreateUserSchema = z.object({
+const CreateDriverSchema = z.object({
   username: z.string(),
   name: z.string(),
   email: z.string().email(),
   phone: z.string(),
-  password: z.string().min(6)
+  password: z.string().min(6),
+  transportType: z.string()
 });
 
-export class CreateUserDto extends createZodDto(CreateUserSchema) {
+export class CreateDriverDto extends createZodDto(CreateDriverSchema) {
     username: string;
 
     name: string;
@@ -19,4 +20,6 @@ export class CreateUserDto extends createZodDto(CreateUserSchema) {
     phone: string;
     
     password: string;
+
+    transportType: string;
 }

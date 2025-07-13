@@ -7,7 +7,7 @@ import * as bcrypt from "bcrypt";
 import { UpdateUserDto } from "./dto/update-user.dto";
 
 @Injectable()
-export class UsersService {
+export class UserService {
     constructor(@InjectModel(User.name) private userModel: Model<User>) {}
 
     async create(createUserDto: CreateUserDto): Promise<User> {
@@ -63,10 +63,11 @@ export class UsersService {
             updateUserDto.password = hashedNewPassword;
         }
 
-        // Atualiza apenas os dados permitidos (displayName, avatarUrl, password)
+        // Atualiza apenas os dados permitidos (name, phone, password)
         const updateData = {
-            ...(updateUserDto.displayName && { displayName: updateUserDto.displayName }),
-            ...(updateUserDto.password && { password: updateUserDto.password }) // Atualiza a senha se ela for modificada
+            ...(updateUserDto.name && { name: updateUserDto.name }),
+            ...(updateUserDto.phone && { phone: updateUserDto.phone }),
+            ...(updateUserDto.password && { password: updateUserDto.password })
         };
 
         // Realiza a atualização

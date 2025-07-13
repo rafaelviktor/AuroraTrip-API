@@ -1,14 +1,15 @@
 import { createZodDto } from "nestjs-zod";
 import { z } from 'zod';
 
-const UpdateUserSchema = z.object({
+const UpdateDriverSchema = z.object({
   name: z.string().optional(),
   currentPassword: z.string().optional(),
   phone: z.string().optional(),
   password: z.string().optional(),
+  transportType: z.string().optional()
 });
 
-export class UpdateUserDto extends createZodDto(UpdateUserSchema) {
+export class UpdateDriverDto extends createZodDto(UpdateDriverSchema) {
     name?: string;
 
     currentPassword?: string;
@@ -16,4 +17,6 @@ export class UpdateUserDto extends createZodDto(UpdateUserSchema) {
     phone?: string;
 
     password?: string;
+
+    transportType?: string;
 }

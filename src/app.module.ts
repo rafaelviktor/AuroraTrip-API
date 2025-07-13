@@ -7,6 +7,7 @@ import { HandlebarsAdapter } from '@nestjs-modules/mailer/dist/adapters/handleba
 import { join } from 'path';
 import { DriverModule } from './driver/driver.module';
 import { VehicleModule } from './vehicles/vehicle.module';
+import { TouristPointModule } from './touristpoint/touristpoint.module';
 
 @Module({
   imports: [
@@ -23,7 +24,8 @@ import { VehicleModule } from './vehicles/vehicle.module';
     AuthModule,
     UserModule,
     DriverModule,
-    VehicleModule
+    VehicleModule,
+    TouristPointModule
   ],
   controllers: [],
   providers: [],

@@ -34,7 +34,7 @@ export class DriverService {
   }      
   
   async findOneId(id: string): Promise<Driver> {
-      const user = await this.driverModel.findById(id);
+      const user = await this.driverModel.findById(id).populate('vehicles');;
       if (!user) {
           throw new NotFoundException("Motorista não encontrado.");
       }

@@ -26,7 +26,6 @@ export class DriverController {
 
     @Get('id/:id')
     @UseGuards(JwtAuthGuard, RolesGuard)
-    @Roles('admin', 'moderator')
     async findOne(@Param('id') id: string) {
         return await this.driverService.findOneId(id);
     }

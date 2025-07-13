@@ -6,6 +6,7 @@ import { AuthModule } from './auth/auth.module';
 import { HandlebarsAdapter } from '@nestjs-modules/mailer/dist/adapters/handlebars.adapter';
 import { join } from 'path';
 import { DriverModule } from './driver/driver.module';
+import { VehicleModule } from './vehicles/vehicle.module';
 
 @Module({
   imports: [
@@ -21,7 +22,8 @@ import { DriverModule } from './driver/driver.module';
     }),
     AuthModule,
     UserModule,
-    DriverModule
+    DriverModule,
+    VehicleModule
   ],
   controllers: [],
   providers: [],

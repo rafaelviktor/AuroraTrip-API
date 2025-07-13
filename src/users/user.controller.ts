@@ -26,7 +26,6 @@ export class UserController {
 
     @Get('id/:id')
     @UseGuards(JwtAuthGuard, RolesGuard)
-    @Roles('admin', 'moderator')
     async findOne(@Param('id') id: string) {
         return await this.userService.findOneId(id);
     }

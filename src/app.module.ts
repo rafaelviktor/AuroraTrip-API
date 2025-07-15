@@ -11,6 +11,7 @@ import { TouristPointModule } from './touristpoint/touristpoint.module';
 import { PackageTourModule } from './packagetour/packagetour.module';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { WalletModule } from './wallet/wallet.module';
+import { BookingModule } from './booking/booking.module';
 
 @Module({
   imports: [
@@ -31,7 +32,8 @@ import { WalletModule } from './wallet/wallet.module';
     VehicleModule,
     TouristPointModule,
     PackageTourModule,
-    WalletModule
+    WalletModule,
+    BookingModule
   ],
   controllers: [],
   providers: [],

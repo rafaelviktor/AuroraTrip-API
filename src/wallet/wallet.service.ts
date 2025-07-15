@@ -1,6 +1,6 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import { Model, Types } from 'mongoose';
+import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { InjectModel, InjectConnection } from '@nestjs/mongoose';
+import { Connection, Model, Types } from 'mongoose';
 import { OnEvent } from '@nestjs/event-emitter';
 import { Wallet } from 'src/schemas/Wallets/Wallet.schema';
 import { User } from 'src/schemas/Users/User.schema';
@@ -14,6 +14,7 @@ export class WalletService {
   constructor(
     @InjectModel(Wallet.name) private readonly walletModel: Model<Wallet>,
     @InjectModel(Transaction.name) private readonly transactionModel: Model<Transaction>,
+    @InjectConnection() private readonly connection: Connection,
   ) {}
 
   @OnEvent('user.created')
@@ -94,5 +95,117 @@ export class WalletService {
       { $inc: { balance: amount } },
       { new: true }
     );
+  }
+
+  async executeBookingPayment(
+    userId: string, 
+    driverId: string, 
+    totalPrice: number,
+    metadata: object
+  ): Promise<void> {
+    const session = await this.connection.startSession();
+    session.startTransaction();
+
+    try {
+      // Encontrar as carteiras do usuário e do motorista
+      const userWallet = await this.walletModel.findOne({ owner: new Types.ObjectId(userId), ownerType: 'User' }).session(session);
+      if (!userWallet || userWallet.balance < totalPrice) {
+        throw new BadRequestException('Saldo insuficiente.');
+      }
+
+      const driverWallet = await this.walletModel.findOne({ owner: new Types.ObjectId(driverId), ownerType: 'Driver' }).session(session);
+      if (!driverWallet) {
+        throw new NotFoundException('Carteira do motorista não encontrada.');
+      }
+
+      // Debitar da carteira do usuário
+      await this.walletModel.updateOne(
+        { _id: userWallet._id },
+        { $inc: { balance: -totalPrice } },
+        { session }
+      );
+      await this.transactionModel.create([{
+        walletId: userWallet._id,
+        amount: -totalPrice,
+        type: 'booking_payment',
+        metadata: metadata,
+      }], { session });
+
+      // Creditar na carteira do motorista
+      await this.walletModel.updateOne(
+        { _id: driverWallet._id },
+        { $inc: { balance: totalPrice } },
+        { session }
+      );
+      await this.transactionModel.create([{
+        walletId: driverWallet._id,
+        amount: totalPrice,
+        type: 'tour_payout',
+        metadata: metadata,
+      }], { session });
+
+      await session.commitTransaction();
+    } catch (error) {
+      await session.abortTransaction();
+      throw error;
+    } finally {
+      session.endSession();
+    }
+  }
+
+  async executeRefund(
+    userId: string,
+    driverId: string,
+    refundAmount: number,
+    metadata: object
+  ): Promise<void> {
+    const session = await this.connection.startSession();
+    session.startTransaction();
+
+    try {
+      // Encontrar as carteiras
+      const driverWallet = await this.walletModel.findOne({ owner: new Types.ObjectId(driverId), ownerType: 'Driver' }).session(session);
+      if (!driverWallet) {
+        throw new NotFoundException('Carteira do motorista não encontrada.');
+      }
+
+      const userWallet = await this.walletModel.findOne({ owner: new Types.ObjectId(userId), ownerType: 'User' }).session(session);
+      if (!userWallet) {
+        throw new NotFoundException('Carteira do usuário não encontrada.');
+      }
+
+      // Debitar da carteira do motorista
+      await this.walletModel.updateOne(
+        { _id: driverWallet._id },
+        { $inc: { balance: -refundAmount } },
+        { session }
+      );
+      await this.transactionModel.create([{
+        walletId: driverWallet._id,
+        amount: -refundAmount,
+        type: 'refund',
+        metadata: metadata,
+      }], { session });
+
+      // Creditar de volta na carteira do usuário
+      await this.walletModel.updateOne(
+        { _id: userWallet._id },
+        { $inc: { balance: refundAmount } },
+        { session }
+      );
+      await this.transactionModel.create([{
+        walletId: userWallet._id,
+        amount: refundAmount,
+        type: 'refund',
+        metadata: metadata,
+      }], { session });
+
+      await session.commitTransaction();
+    } catch (error) {
+      await session.abortTransaction();
+      throw error;
+    } finally {
+      session.endSession();
+    }
   }
 }

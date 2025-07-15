@@ -5,10 +5,14 @@ import { User } from "src/schemas/Users/User.schema";
 import { CreateUserDto } from "./dto/create-user.dto";
 import * as bcrypt from "bcrypt";
 import { UpdateUserDto } from "./dto/update-user.dto";
+import { EventEmitter2 } from "@nestjs/event-emitter";
 
 @Injectable()
 export class UserService {
-    constructor(@InjectModel(User.name) private userModel: Model<User>) {}
+    constructor(
+        @InjectModel(User.name) private userModel: Model<User>,
+        private eventEmitter: EventEmitter2
+    ) { }
 
     async create(createUserDto: CreateUserDto): Promise<User> {
         const saltRounds = 10;
@@ -18,7 +22,12 @@ export class UserService {
             ...createUserDto,
             password: hashedPassword,
         });
-        return newUser.save();
+        
+        const savedUser = await newUser.save();
+
+        this.eventEmitter.emit('user.created', savedUser);
+
+        return savedUser;
     }
 
     findAll(): Promise<User[]> {
@@ -31,8 +40,8 @@ export class UserService {
 
     async findOneEmail(email: string): Promise<User | null> {
         return await this.userModel.findOne({ email });
-    }      
-    
+    }
+
     async findOneId(id: string): Promise<User> {
         const user = await this.userModel.findById(id);
         if (!user) {
@@ -72,14 +81,14 @@ export class UserService {
 
         // Realiza a atualização
         const updatedUser = await this.userModel.findByIdAndUpdate(id, updateData, { new: true, runValidators: true });
-        
+
         return updatedUser;
     }
 
-    async remove (id: string): Promise<void> {
+    async remove(id: string): Promise<void> {
         const user = await this.userModel.findByIdAndDelete(id);
         if (!user) {
             throw new NotFoundException("Usuário não encontrado.");
-          }
+        }
     }
 }

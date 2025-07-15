@@ -9,9 +9,12 @@ import { DriverModule } from './driver/driver.module';
 import { VehicleModule } from './vehicles/vehicle.module';
 import { TouristPointModule } from './touristpoint/touristpoint.module';
 import { PackageTourModule } from './packagetour/packagetour.module';
+import { EventEmitterModule } from '@nestjs/event-emitter';
+import { WalletModule } from './wallet/wallet.module';
 
 @Module({
   imports: [
+    EventEmitterModule.forRoot(),
     ConfigModule.forRoot({
       isGlobal: true,
     }),
@@ -27,7 +30,8 @@ import { PackageTourModule } from './packagetour/packagetour.module';
     DriverModule,
     VehicleModule,
     TouristPointModule,
-    PackageTourModule
+    PackageTourModule,
+    WalletModule
   ],
   controllers: [],
   providers: [],

@@ -7,6 +7,8 @@ import { Vehicle } from 'src/schemas/Vehicles/Vehicle.schema';
 import { CreatePackageTourDto } from './dto/create-packagetour.dto';
 import { UpdatePackageTourDto } from './dto/update-packagetour.dto';
 import { User } from 'src/schemas/Users/User.schema';
+import { FilterPackageTourDto } from './dto/filter-packagetour.dto';
+import { TouristPoint } from 'src/schemas/TouristPoints/TouristPoint.schema';
 
 @Injectable()
 export class PackageTourService {
@@ -14,6 +16,7 @@ export class PackageTourService {
     @InjectModel(PackageTour.name) private readonly packageTourModel: Model<PackageTourDocument>,
     @InjectModel(Vehicle.name) private readonly vehicleModel: Model<Vehicle>,
     @InjectModel(User.name) private readonly userModel: Model<User>,
+    @InjectModel(TouristPoint.name) private readonly touristPointModel: Model<TouristPoint>,
   ) {}
 
   async create(createDto: CreatePackageTourDto, driverId: string): Promise<PackageTour> {
@@ -36,10 +39,49 @@ export class PackageTourService {
     return newPackage.save();
   }
 
-  async findAll(): Promise<PackageTour[]> {
+  async findAll(filters: FilterPackageTourDto): Promise<PackageTour[]> {
+    const { origin, destination, transportType } = filters;
+    const queryFilter: any = {};
+
+    // Filtros da query
+    if (transportType) {
+      // 1. Encontra os motoristas que têm o tipo de transporte desejado
+      const drivers = await this.vehicleModel.find({ transportType: transportType }).select('_id');
+      // 2. Extrai apenas os IDs
+      const driverIds = drivers.map(driver => driver._id);
+      
+      // 3. Adiciona ao filtro principal: busca pacotes cujo motorista esteja na lista de IDs encontrada
+      if (driverIds.length > 0) {
+        queryFilter.driver = { $in: driverIds };
+      } else {
+        // Se nenhum motorista for encontrado com esse tipo de transporte, retorna uma lista vazia.
+        return [];
+      }
+    }
+
+    // Encontra os pontos turísticos pelo nome
+    if (origin) {
+      const originPoint = await this.touristPointModel.findOne({ name: { $regex: new RegExp(`^${origin}$`, 'i') } });
+      // Se encontrar, usa o ID dele no filtro
+      if (originPoint) {
+        queryFilter.origin = originPoint._id;
+      } else {
+        return [];
+      }
+    }
+
+    if (destination) {
+      const destinationPoint = await this.touristPointModel.findOne({ name: { $regex: new RegExp(`^${destination}$`, 'i') } });
+      if (destinationPoint) {
+        queryFilter.destination = destinationPoint._id;
+      } else {
+        return [];
+      }
+    }
+
     // Popula os campos para retornar dados úteis em vez de apenas IDs
     return this.packageTourModel
-      .find()
+      .find(queryFilter) // Aplica o objeto de filtro dinâmico
       .populate('driver', 'name transportType')
       .populate('vehicle', 'vehicleModel capacity')
       .populate('origin', 'name city state')

@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Req, HttpCode } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Req, HttpCode, Query } from '@nestjs/common';
 import { PackageTourService } from './packagetour.service';
 import { CreatePackageTourDto } from './dto/create-packagetour.dto';
 import { UpdatePackageTourDto } from './dto/update-packagetour.dto';
@@ -7,6 +7,7 @@ import { JwtPayload } from 'src/auth/dto/jwt.interface';
 import { JwtAuthGuard } from 'src/auth/guards/jwt.guard';
 import { RolesGuard } from 'src/auth/guards/role.guard';
 import { Roles } from 'src/auth/decorators/roles.decorator';
+import { FilterPackageTourDto } from './dto/filter-packagetour.dto';
 
 @Controller('package-tours')
 export class PackageTourController {
@@ -21,8 +22,8 @@ export class PackageTourController {
   }
 
   @Get()
-  findAll() {
-    return this.packageTourService.findAll();
+  findAll(@Query() filters: FilterPackageTourDto) {
+    return this.packageTourService.findAll(filters);
   }
 
   @Get(':id')

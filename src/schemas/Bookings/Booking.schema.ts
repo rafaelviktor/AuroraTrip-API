@@ -21,6 +21,12 @@ export class Booking extends Document {
   @Prop({ required: true })
   totalPrice: number; // O preço total da reserva
 
+  @Prop({ required: true })
+  platformFee: number; // A taxa retida pela plataforma (ex: R$ 5)
+
+  @Prop({ required: true })
+  netAmountForDriver: number; // O valor líquido que o motorista recebe (ex: R$ 95)
+
   @Prop({ 
     required: true, 
     enum: ['pending_payment', 'confirmed', 'completed', 'canceled_by_user', 'canceled_by_driver'], 

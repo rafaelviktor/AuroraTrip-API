@@ -4,7 +4,7 @@ import { Document, Types } from "mongoose";
 
 @Schema({ timestamps: true })
 export class Wallet extends Document {
-  @Prop({ required: true, index: true }) // ID do dono da carteira (seja User ou Driver)
+  @Prop({ type: Types.ObjectId, required: true, index: true }) // ID do dono da carteira (seja User ou Driver)
   owner: Types.ObjectId;
 
   @Prop({ required: true, enum: ['User', 'Driver'] }) // Para identificar qual coleção 'owner' está referenciando

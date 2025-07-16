@@ -28,7 +28,7 @@ export class BookingService {
     const totalPrice = packageTour.price * createDto.seats;
 
     // Processar o pagamento via WalletService
-    await this.walletService.executeBookingPayment(
+    const { platformFee, netAmountForDriver } = await this.walletService.executeBookingPayment(
       userId,
       packageTour.driver.toString(),
       totalPrice,
@@ -46,6 +46,8 @@ export class BookingService {
       vehicle: packageTour.vehicle,
       seats: createDto.seats,
       totalPrice: totalPrice,
+      platformFee: platformFee,
+      netAmountForDriver: netAmountForDriver,
       status: 'confirmed',
       paymentDetails: { paidAt: new Date() }
     });

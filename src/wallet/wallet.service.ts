@@ -6,6 +6,7 @@ import { Wallet } from 'src/schemas/Wallets/Wallet.schema';
 import { User } from 'src/schemas/Users/User.schema';
 import { Driver } from 'src/schemas/Drivers/Driver.schema';
 import { Transaction } from 'src/schemas/Transactions/Transaction.schema';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class WalletService {
@@ -14,6 +15,7 @@ export class WalletService {
   constructor(
     @InjectModel(Wallet.name) private readonly walletModel: Model<Wallet>,
     @InjectModel(Transaction.name) private readonly transactionModel: Model<Transaction>,
+    private readonly configService: ConfigService,
     @InjectConnection() private readonly connection: Connection,
   ) {}
 
@@ -102,49 +104,48 @@ export class WalletService {
     driverId: string, 
     totalPrice: number,
     metadata: object
-  ): Promise<void> {
+    ): Promise<{ platformFee: number; netAmountForDriver: number }> {
     const session = await this.connection.startSession();
     session.startTransaction();
 
     try {
-      // Encontrar as carteiras do usuário e do motorista
+      // Obter a taxa e o ID da carteira da plataforma a partir da configuração
+      const feePercentage = this.configService.get<number>('PLATFORM_FEE_PERCENTAGE') ?? 0;
+      const platformOwnerId = this.configService.get<string>('PLATFORM_OWNER_ID');
+
+      // Calcular os valores
+      const platformFee = totalPrice * (feePercentage / 100);
+      const netAmountForDriver = totalPrice - platformFee;
+
+      // Encontrar as carteiras envolvidas na transação
       const userWallet = await this.walletModel.findOne({ owner: new Types.ObjectId(userId), ownerType: 'User' }).session(session);
       if (!userWallet || userWallet.balance < totalPrice) {
         throw new BadRequestException('Saldo insuficiente.');
       }
 
       const driverWallet = await this.walletModel.findOne({ owner: new Types.ObjectId(driverId), ownerType: 'Driver' }).session(session);
-      if (!driverWallet) {
-        throw new NotFoundException('Carteira do motorista não encontrada.');
+      const platformWallet = await this.walletModel.findOne({ owner: new Types.ObjectId(platformOwnerId) }).session(session);
+      if (!driverWallet || !platformWallet) {
+        throw new NotFoundException('Carteira do motorista ou da plataforma não encontrada.');
       }
 
-      // Debitar da carteira do usuário
-      await this.walletModel.updateOne(
-        { _id: userWallet._id },
-        { $inc: { balance: -totalPrice } },
-        { session }
-      );
-      await this.transactionModel.create([{
-        walletId: userWallet._id,
-        amount: -totalPrice,
-        type: 'booking_payment',
-        metadata: metadata,
-      }], { session });
+      // Realizar as 3 operações de forma atômica
 
-      // Creditar na carteira do motorista
-      await this.walletModel.updateOne(
-        { _id: driverWallet._id },
-        { $inc: { balance: totalPrice } },
-        { session }
-      );
-      await this.transactionModel.create([{
-        walletId: driverWallet._id,
-        amount: totalPrice,
-        type: 'tour_payout',
-        metadata: metadata,
-      }], { session });
+      // Debitar valor total do usuário
+      await this.walletModel.findByIdAndUpdate(userWallet._id, { $inc: { balance: -totalPrice } }, { session });
+      await this.transactionModel.create([{ walletId: userWallet._id, amount: -totalPrice, type: 'booking_payment', metadata }], { session });
 
+      // Creditar valor líquido para o motorista
+      await this.walletModel.findByIdAndUpdate(driverWallet._id, { $inc: { balance: netAmountForDriver } }, { session });
+      await this.transactionModel.create([{ walletId: driverWallet._id, amount: netAmountForDriver, type: 'tour_payout', metadata }], { session });
+
+      // Creditar taxa para a plataforma
+      await this.walletModel.findByIdAndUpdate(platformWallet._id, { $inc: { balance: platformFee } }, { session });
+      await this.transactionModel.create([{ walletId: platformWallet._id, amount: platformFee, type: 'fee_collection', metadata }], { session });
+      
       await session.commitTransaction();
+
+      return { platformFee, netAmountForDriver };
     } catch (error) {
       await session.abortTransaction();
       throw error;

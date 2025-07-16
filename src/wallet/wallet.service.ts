@@ -154,15 +154,16 @@ export class WalletService {
 
       if (!driverWallet || !platformWallet) throw new NotFoundException('Carteira do motorista ou da plataforma não encontrada.');
 
-      // Debita o valor total da carteira da plataforma (que estava retido)
-      await this.walletModel.findByIdAndUpdate(platformWallet._id, { $inc: { balance: -(netAmountForDriver + platformFee) } }, { session });
+      // Debita o valor da carteira da plataforma (que estava retido para o motorista e mantém a taxa na carteira)
+      await this.walletModel.findByIdAndUpdate(platformWallet._id, { $inc: { balance: -netAmountForDriver } }, { session });
+      await this.transactionModel.create([{ walletId: platformWallet._id, amount: -netAmountForDriver, type: 'tour_payout_hold', metadata }], { session });
+
+      // A taxa já está na carteira da plataforma, então só registro a transação de "coleta"
+      await this.transactionModel.create([{ walletId: platformWallet._id, amount: platformFee, type: 'fee_collection', metadata }], { session });
 
       // Credita o valor líquido para o motorista
       await this.walletModel.findByIdAndUpdate(driverWallet._id, { $inc: { balance: netAmountForDriver } }, { session });
       await this.transactionModel.create([{ walletId: driverWallet._id, amount: netAmountForDriver, type: 'tour_payout', metadata }], { session });
-
-      // A taxa já está na carteira da plataforma, então só registro a transação de "coleta"
-      await this.transactionModel.create([{ walletId: platformWallet._id, amount: platformFee, type: 'fee_collection', metadata }], { session });
 
       await session.commitTransaction();
     } catch (error) {

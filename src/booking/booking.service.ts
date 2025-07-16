@@ -5,12 +5,14 @@ import { Booking } from 'src/schemas/Bookings/Booking.schema';
 import { PackageTour } from 'src/schemas/PackageTours/PackageTour.schema';
 import { CreateBookingDto } from './dto/create-booking.dto';
 import { WalletService } from 'src/wallet/wallet.service';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class BookingService {
   constructor(
     @InjectModel(Booking.name) private readonly bookingModel: Model<Booking>,
     @InjectModel(PackageTour.name) private readonly packageTourModel: Model<PackageTour>,
+    private readonly configService: ConfigService,
     private readonly walletService: WalletService,
   ) {}
 
@@ -27,12 +29,16 @@ export class BookingService {
     // Calcular o preço total
     const totalPrice = packageTour.price * createDto.seats;
 
-    // Processar o pagamento via WalletService
-    const { platformFee, netAmountForDriver } = await this.walletService.executeBookingPayment(
+    // Obter a porcentagem da plataforma
+    const feePercentage = this.configService.get<number>('PLATFORM_FEE_PERCENTAGE') ?? 0;
+    const platformFee = totalPrice * (feePercentage / 100);
+    const netAmountForDriver = totalPrice - platformFee;
+
+    // Processar o pagamento via WalletService e reter o dinheiro
+    await this.walletService.holdBookingPayment(
       userId,
-      packageTour.driver.toString(),
       totalPrice,
-      { 
+      {
         packageTourId: packageTour._id,
         description: `Reserva de ${createDto.seats} assento(s) no tour "${packageTour.tourType}"`
       }
@@ -57,6 +63,36 @@ export class BookingService {
     await packageTour.save();
 
     return newBooking.save();
+  }
+
+  async startTour(bookingId: string, driverId: string): Promise<Booking> {
+    const booking = await this.bookingModel.findById(bookingId);
+    if (!booking) throw new NotFoundException('Reserva não encontrada.');
+    if (booking.driver.toString() !== driverId) throw new ForbiddenException('Você não é o motorista deste passeio.');
+    if (booking.status !== 'confirmed') throw new ConflictException(`Não é possível iniciar um passeio com status "${booking.status}".`);
+
+    booking.status = 'in_progress';
+    booking.actualDepartureTime = new Date();
+    return booking.save();
+  }
+
+  async completeTour(bookingId: string, driverId: string): Promise<Booking> {
+    const booking = await this.bookingModel.findById(bookingId);
+    if (!booking) throw new NotFoundException('Reserva não encontrada.');
+    if (booking.driver.toString() !== driverId) throw new ForbiddenException('Você não é o motorista deste passeio.');
+    if (booking.status !== 'in_progress') throw new ConflictException(`Não é possível finalizar um passeio com status "${booking.status}".`);
+
+    // Libera o pagamento para o motorista
+    await this.walletService.releasePayoutToDriver(
+      driverId,
+      booking.netAmountForDriver,
+      booking.platformFee,
+      { bookingId: booking._id, description: 'Pagamento de passeio finalizado' }
+    );
+
+    booking.status = 'completed';
+    booking.actualReturnTime = new Date();
+    return booking.save();
   }
 
   async findForUser(userId: string): Promise<Booking[]> {
@@ -86,13 +122,12 @@ export class BookingService {
     }
 
     // Processar o reembolso através do WalletService
-    await this.walletService.executeRefund(
+    await this.walletService.refundHeldPayment(
       booking.user.toString(),
-      booking.driver.toString(),
-      booking.totalPrice,
+      booking.totalPrice, // O usuário recebe o valor total de volta
       {
         bookingId: booking._id,
-        description: `Reembolso referente ao cancelamento da reserva #${booking.id.substring(0, 8)}`
+        description: `Reembolso total referente ao cancelamento da reserva #${booking.id.substring(0, 8)}`
       }
     );
 

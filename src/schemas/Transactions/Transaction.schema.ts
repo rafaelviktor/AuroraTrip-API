@@ -12,7 +12,7 @@ export class Transaction extends Document {
 
   @Prop({ 
     required: true, 
-    enum: ['deposit', 'withdraw', 'booking_payment', 'fee_collection', 'tour_payout', 'refund'] 
+    enum: ['deposit', 'withdraw', 'booking_payment', 'fee_collection', 'in_progress', 'tour_payout_hold', 'tour_payout', 'hold_refund', 'refund'] 
   })
   type: string;
 

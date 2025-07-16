@@ -19,6 +19,20 @@ export class BookingController {
     return this.bookingService.create(createBookingDto, user.sub);
   }
 
+  @Patch(':id/start')
+  startTour(@Param('id') bookingId: string, @Req() req: Request) {
+    const user = req.user as JwtPayload;
+    if (user.type !== 'driver') throw new ForbiddenException('Apenas motoristas podem iniciar um passeio.');
+    return this.bookingService.startTour(bookingId, user.sub);
+  }
+
+  @Patch(':id/complete')
+  completeTour(@Param('id') bookingId: string, @Req() req: Request) {
+    const user = req.user as JwtPayload;
+    if (user.type !== 'driver') throw new ForbiddenException('Apenas motoristas podem finalizar um passeio.');
+    return this.bookingService.completeTour(bookingId, user.sub);
+  }
+
   @Get()
   findMyBookings(@Req() req: Request) {
     const user = req.user as JwtPayload;

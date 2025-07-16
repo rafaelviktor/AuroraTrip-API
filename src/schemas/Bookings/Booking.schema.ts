@@ -27,9 +27,23 @@ export class Booking extends Document {
   @Prop({ required: true })
   netAmountForDriver: number; // O valor líquido que o motorista recebe (ex: R$ 95)
 
+  @Prop({ type: Date, default: null })
+  actualDepartureTime?: Date; // Data/hora que o motorista iniciou o passeio
+
+  @Prop({ type: Date, default: null })
+  actualReturnTime?: Date;  // Data/hora que o motorista finalizou o passeio
+
   @Prop({ 
     required: true, 
-    enum: ['pending_payment', 'confirmed', 'completed', 'canceled_by_user', 'canceled_by_driver'], 
+    // ✅ NOVOS STATUS PARA O CICLO DE VIDA DO PASSEIO
+    enum: [
+      'pending_payment', // Pendente o pagamento
+      'confirmed',       // Pago, aguardando início
+      'in_progress',     // Passeio em andamento
+      'completed',       // Passeio finalizado, pagamento liberado
+      'canceled_by_user', // Cancelado pelo usuário
+      'canceled_by_driver' // Cancelado pelo motorista
+    ], 
     default: 'pending_payment' 
   })
   status: string;

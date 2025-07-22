@@ -24,6 +24,13 @@ export class DriverController {
         return this.driverService.findAll();
     }
 
+    @Get('my-profile')
+    @UseGuards(JwtAuthGuard, RolesGuard)
+    async findMyProfile(@Req() req: Request) {
+        const user = req.user as JwtPayload;
+        return await this.driverService.findOneId(user.sub);
+    }
+
     @Get('id/:id')
     @UseGuards(JwtAuthGuard, RolesGuard)
     async findOne(@Param('id') id: string) {

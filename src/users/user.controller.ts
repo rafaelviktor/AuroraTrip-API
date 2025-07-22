@@ -24,6 +24,13 @@ export class UserController {
         return this.userService.findAll();
     }
 
+    @Get('my-profile')
+    @UseGuards(JwtAuthGuard, RolesGuard)
+    async findMyProfile(@Req() req: Request) {
+        const user = req.user as JwtPayload;
+        return await this.userService.findOneId(user.sub);
+    }
+
     @Get('id/:id')
     @UseGuards(JwtAuthGuard, RolesGuard)
     async findOne(@Param('id') id: string) {

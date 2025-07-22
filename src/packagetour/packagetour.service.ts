@@ -1,8 +1,7 @@
 import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import { PackageTour, PackageTourDocument } from 'src/schemas/PackageTours/PackageTour.schema';
-import { Driver } from 'src/schemas/Drivers/Driver.schema';
 import { Vehicle } from 'src/schemas/Vehicles/Vehicle.schema';
 import { CreatePackageTourDto } from './dto/create-packagetour.dto';
 import { UpdatePackageTourDto } from './dto/update-packagetour.dto';
@@ -20,19 +19,22 @@ export class PackageTourService {
   ) {}
 
   async create(createDto: CreatePackageTourDto, driverId: string): Promise<PackageTour> {
-    // 1. Valida se o veículo existe e pertence ao motorista
-    const vehicle = await this.vehicleModel.findOne({ _id: createDto.vehicle, driver: driverId });
+    // Valida se o veículo existe e pertence ao motorista
+    const vehicle = await this.vehicleModel.findOne({ _id: new Types.ObjectId(createDto.vehicle), driver: new Types.ObjectId(driverId) });
     if (!vehicle) {
       throw new NotFoundException(`Veículo com ID "${createDto.vehicle}" não encontrado ou não pertence a este motorista.`);
     }
 
-    // 2. Define a quantidade de assentos disponíveis com base na capacidade do veículo
+    // Define a quantidade de assentos disponíveis com base na capacidade do veículo
     const seatsAvailable = vehicle.capacity;
 
-    // 3. Cria o novo pacote de tour
+    // Cria o novo pacote de tour
     const newPackage = new this.packageTourModel({
       ...createDto,
-      driver: driverId,
+      driver: new Types.ObjectId(driverId),
+      vehicle: new Types.ObjectId(createDto.vehicle),
+      origin: new Types.ObjectId(createDto.origin),
+      destination: new Types.ObjectId(createDto.destination),
       seatsAvailable: seatsAvailable,
     });
 
@@ -45,12 +47,12 @@ export class PackageTourService {
 
     // Filtros da query
     if (transportType) {
-      // 1. Encontra os motoristas que têm o tipo de transporte desejado
+      // Encontra os motoristas que têm o tipo de transporte desejado
       const drivers = await this.vehicleModel.find({ transportType: transportType }).select('_id');
-      // 2. Extrai apenas os IDs
+      // Extrai apenas os IDs
       const driverIds = drivers.map(driver => driver._id);
       
-      // 3. Adiciona ao filtro principal: busca pacotes cujo motorista esteja na lista de IDs encontrada
+      // Adiciona ao filtro principal: busca pacotes cujo motorista esteja na lista de IDs encontrada
       if (driverIds.length > 0) {
         queryFilter.driver = { $in: driverIds };
       } else {

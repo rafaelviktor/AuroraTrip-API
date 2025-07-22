@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import { Vehicle } from 'src/schemas/Vehicles/Vehicle.schema';
 import { Driver } from 'src/schemas/Drivers/Driver.schema';
 import { CreateVehicleDto } from './dto/create-vehicle.dto';
@@ -23,7 +23,7 @@ export class VehicleService {
     // Cria a nova instância do veículo associando o ID do motorista
     const newVehicle = new this.vehicleModel({
       ...createVehicleDto,
-      driver: driverId,
+      driver: new Types.ObjectId(driverId),
     });
 
     const savedVehicle = await newVehicle.save();
@@ -38,7 +38,7 @@ export class VehicleService {
 
   // Busca todos os veículos de um motorista específico
   async findAllByDriver(driverId: string): Promise<Vehicle[]> {
-    return this.vehicleModel.find({ driver: driverId }).exec();
+    return this.vehicleModel.find({ driver: new Types.ObjectId(driverId) }).exec();
   }
 
   // Busca um veículo específico, garantindo que ele pertença ao motorista logado

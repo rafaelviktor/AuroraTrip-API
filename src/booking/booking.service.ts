@@ -47,9 +47,9 @@ export class BookingService {
     // Se o pagamento foi bem-sucedido, cria a reserva e atualiza o pacote
     const newBooking = new this.bookingModel({
       packageTour: packageTour._id,
-      user: userId,
-      driver: packageTour.driver,
-      vehicle: packageTour.vehicle,
+      user: new Types.ObjectId(userId),
+      driver: new Types.ObjectId(packageTour.driver),
+      vehicle: new Types.ObjectId(packageTour.vehicle),
       seats: createDto.seats,
       totalPrice: totalPrice,
       platformFee: platformFee,
@@ -97,7 +97,7 @@ export class BookingService {
 
   async findForUser(userId: string): Promise<Booking[]> {
     return this.bookingModel
-      .find({ user: userId })
+      .find({ user: new Types.ObjectId(userId) })
       .populate('packageTour', 'tourType departureTime')
       .populate('driver', 'name')
       .sort({ createdAt: -1 })

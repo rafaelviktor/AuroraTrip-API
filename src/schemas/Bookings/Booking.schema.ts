@@ -35,7 +35,6 @@ export class Booking extends Document {
 
   @Prop({ 
     required: true, 
-    // ✅ NOVOS STATUS PARA O CICLO DE VIDA DO PASSEIO
     enum: [
       'pending_payment', // Pendente o pagamento
       'confirmed',       // Pago, aguardando início

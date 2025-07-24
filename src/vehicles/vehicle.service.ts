@@ -43,7 +43,7 @@ export class VehicleService {
 
   // Busca um veículo específico, garantindo que ele pertença ao motorista logado
   async findOne(id: string, driverId: string): Promise<Vehicle> {
-    const vehicle = await this.vehicleModel.findOne({ _id: id, driver: driverId }).exec();
+    const vehicle = await this.vehicleModel.findOne({ _id: new Types.ObjectId(id), driver: new Types.ObjectId(driverId) }).exec();
     if (!vehicle) {
       throw new NotFoundException(`Veículo com ID "${id}" não encontrado ou não pertence a este motorista.`);
     }

@@ -57,6 +57,7 @@ export class AuthService {
         return {
             access_token: accessToken,
             refresh_token: refreshToken,
+            role: foundAccount.role,
         };
     }
 
